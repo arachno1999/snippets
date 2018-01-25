@@ -1,0 +1,21 @@
+#!/bin/bash
+# Author: Roland Schopp
+# Company: Arachno Gmbh - http://arachno.de
+# GitHub: https://github.com/arachno1999/snippets
+# $Id:$
+# $Version:$
+# loop over contents of a file which may contain blanks and field delimiters(i.e. for .csv files)
+# 
+# configure sep as field separator and filename as file to read from
+# some basic escaping is done for " in lines
+# fields can use %SEP%, if field contains separator
+#
+PATH="/usr/xpg4/bin:$PATH" # get the right awk on Solaris
+sep="|"
+filename="dummy"
+# create testfile if not present
+[ -s $filename ] ||echo "test1 \"x${sep}test2.1%SEP%test2.2${sep}" >$filename
+for line in $(grep -v "^#" $filename | sed -e's/ /%SPACE%/g'); do
+        eval $(echo "$line" | awk -F$sep '{ for(i=1;i<=NF;i++) { gsub("\"","\\\\\"",$i);print "field" i "=\"" $i "\";"; } }' | sed -e's/%SPACE%/ /g' -e's/%SEP%/'$sep'/g')
+        set
+done
