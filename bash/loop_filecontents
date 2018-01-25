@@ -9,12 +9,14 @@
 # configure sep as field separator and filename as file to read from
 # some basic escaping is done for " in lines
 # fields can use %SEP%, if field contains separator
+# fields inside the loop are available as field1,field2 etc.
 #
 PATH="/usr/xpg4/bin:$PATH" # get the right awk on Solaris
 sep="|"
 filename="dummy"
 # create testfile if not present
 [ -s $filename ] ||echo "test1 \"x${sep}test2.1%SEP%test2.2${sep}" >$filename
+#DOC loop over file content of $filename
 for line in $(grep -v "^#" $filename | sed -e's/ /%SPACE%/g'); do
         eval $(echo "$line" | awk -F$sep '{ for(i=1;i<=NF;i++) { gsub("\"","\\\\\"",$i);print "field" i "=\"" $i "\";"; } }' | sed -e's/%SPACE%/ /g' -e's/%SEP%/'$sep'/g')
         set
