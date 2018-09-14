@@ -1,0 +1,95 @@
+#!/bin/bash
+
+set /var/apache2/2.4/KRBTRACK/htdocs /var/apache2/2.4/htdocs
+set -- -v krbtrack.zit.commerzbank.com
+
+usage() {
+        cat <<EOT
+usage: $0 directorname [directoryname1] [..]
+
+show config of directory
+
+or
+
+$0 -v hostname(s)
+
+show config of virtualhost
+
+EOT
+        exit 1
+}
+
+if [ $# -lt 1 ]; then
+        usage
+        exit 1
+fi
+
+type="dir"
+name="Directory"
+if [ $1 = "-v" ]; then
+        type="vhost"
+        name="Virtual Host"
+        shift
+fi
+
+if [ $# -lt 1 ]; then
+        usage
+        exit 1
+fi
+
+while [ $# -gt 0 ]; do
+        if [ $type = "dir" -a ! -d $1 ]; then
+                usage
+                exit 1
+        fi
+        for config in httpd.conf conf.d/ssl.conf; do
+                echo ""
+                echo "$name $1 in $config"
+                echo "======================================================================="
+                awk 'BEGIN { out="false"; count=0 }
+                /^$/ { next }
+                /.*#/ { next }
+                /\<\/Directory/ && typ=="dir" {
+                        out="false"
+                        next
+                }
+                /\<Directory \/>/ && typ=="dir" {
+                        print "ALL directories"
+                        out="true"
+                }
+                /\<Directory/ && typ=="dir" {
+                        anz=split($0,x,"\"")
+                        if(anz==3 && x[2]==dir) {
+                                out="true"
+                                print ""
+                                count++
+                        }
+                        next
+                }
+                /\<\/VirtualHost/ && typ=="vhost" {
+                        out="false"
+                        next
+                }
+                /\<VirtualHost/ && typ=="vhost" {
+                        if(substr($2,0,length(dir)) == dir) {
+                                out="true"
+                                print ""
+                                count++
+                        }
+                        next
+                }
+                out=="true" { print }
+                END {
+                        if(count==0) {
+                                print "Nicht gefunden"
+                                print ""
+                        }
+                        if(count>1) {
+                                print ""
+                                print "Achtung !!! " count " mal gefunden"
+                        }
+                }
+                ' dir="$1" typ="$type" $config
+        done
+        shift
+done
